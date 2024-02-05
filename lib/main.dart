@@ -1,6 +1,7 @@
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:qnc_app/uplaod.dart';
 
 void main() {
   runApp(MyApp());
@@ -192,6 +193,13 @@ class GeneratorPage extends StatelessWidget {
                 },
                 child: Text('Next'),
               ),
+              SizedBox(width: 10),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(context, new MaterialPageRoute(builder: (context) => new Prepare()));
+                },
+                child: Text('TryOn'),
+              ),
             ],
           ),
           Spacer(flex: 2),
@@ -200,7 +208,6 @@ class GeneratorPage extends StatelessWidget {
     );
   }
 }
-
 
 class BigCard extends StatelessWidget {
   const BigCard({
@@ -245,6 +252,7 @@ class BigCard extends StatelessWidget {
     );
   }
 }
+
 class FavoritesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -267,10 +275,7 @@ class FavoritesPage extends StatelessWidget {
         ),
         Expanded(
             child: GridView(
-          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 400, 
-            childAspectRatio: 400 / 80
-            ),
+          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 400, childAspectRatio: 400 / 80),
           children: [
             for (var pair in appState.favorites)
               ListTile(
