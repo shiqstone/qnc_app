@@ -1,13 +1,22 @@
 class ProcessResp {
-  late String msg;
+  late int statusCode;
+  String? statusMsg;
   String? processedImage;
+  int? orderId;
 
-  ProcessResp(this.msg, this.processedImage);
+  ProcessResp(this.statusCode, this.statusMsg, this.processedImage, this.orderId);
 
   ProcessResp.fromJson(Map<String, dynamic> json) {
-    msg = json['msg'];
+    statusCode = json['status_code'];
+    statusMsg = json['status_msg'];
     processedImage = json['processed_image'];
+    orderId = json['order_id'];
   }
 
-  Map<String, dynamic> toJson() => {'msg': msg, 'processed_image': processedImage};
+  Map<String, dynamic> toJson() => {
+    'status_code': statusCode,
+    'status_msg': statusMsg, 
+    'processed_image': processedImage,
+    'order_id': orderId
+    };
 }

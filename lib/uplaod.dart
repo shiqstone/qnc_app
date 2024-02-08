@@ -7,6 +7,15 @@ import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:qnc_app/appbar.dart';
+import 'package:qnc_app/constant.dart';
+import 'package:qnc_app/login.dart';
+import 'package:qnc_app/model/ws_msg.dart';
+import 'package:qnc_app/recharge.dart';
+import 'package:qnc_app/utils/log.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:web_socket_channel/io.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'package:qnc_app/model/coordinate.dart';
 import 'package:qnc_app/model/process_resp.dart';
@@ -25,8 +34,52 @@ class _PreparePageState extends State<PreparePage> {
   int? height;
   Uint8List? _processedImageBytes;
   bool _success = false;
+  int? _orderId;
+  String? _token;
 
   List<Coordinate> coords = [];
+
+  late WebSocketChannel _channel;
+  late SharedPreferences sharedPreferences;
+
+  String wsUrl = Constant.wsBaseUrl + '/ws';
+
+  @override
+  void initState() {
+    super.initState();
+
+    getCurToken().then((token) {
+      if (token!.isNotEmpty) {
+        _token = token;
+        _channel = IOWebSocketChannel.connect(
+          wsUrl,
+        );
+        LogUtil.i('[ws]: connected');
+        _channel.sink.add(token);
+
+        _channel.stream.listen((event) {
+          LogUtil.i('on message');
+          onMessage(event);
+        }, onDone: () {
+          LogUtil.i('connect closed');
+          // reconnect();
+        }, onError: (e) {
+          WebSocketChannelException except = e;
+          LogUtil.i('connect error');
+          LogUtil.e(except.message);
+        });
+      } else {
+        LogUtil.i('[ws]: not login, cannot connect');
+        Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _channel.sink.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -277,66 +330,130 @@ class _PreparePageState extends State<PreparePage> {
       _success = false;
       _loading = false;
       _processedImageBytes = null;
+
+      coords.clear();
     });
   }
 
   Future<void> _submitData() async {
+    LogUtil.d('cur token $_token');
+    if (_token == null || _token!.isEmpty) {
+      Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
+    }
+
     setState(() {
       _loading = true;
     });
 
-    var url = 'http:/127.0.0.1/image/ud';
+    var url = Constant.httpBaseUrl + '/image/ud/';
 
     var request = http.MultipartRequest('POST', Uri.parse(url));
     var file = _file!;
     var stream = http.ByteStream(file.openRead());
     var length = await file.length();
+    Map<String, String> headers = <String, String>{'Authorization': 'Bearer ' + _token!};
+    request.headers.addAll(headers);
     var multipartFile = http.MultipartFile('file', stream, length, filename: 'image.jpg');
     request.files.add(multipartFile);
     request.fields['pos'] = jsonEncode(coords);
 
-    var response = await request.send();
+    // var response = await request.send();
+    request.send().then((response) async {
+      if (response.statusCode == 200) {
+        Map<String, dynamic> respMap = jsonDecode(await response.stream.bytesToString());
+        var processResp = ProcessResp.fromJson(respMap);
+        if (processResp.statusCode == 10003 || processResp.statusCode == 10005) {
+          LogUtil.i('no login');
+          Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
+          // setState(() {
+          //   _success = true;
+          //   _processedImageBytes = base64Decode(processResp.processedImage!);
+          // });
+        } else if (processResp.statusCode == 10006) {
+          LogUtil.i('balance not enough');
+          //todo
+          Navigator.push(context, new MaterialPageRoute(builder: (context) => new RechargePage()));
+        } else if (processResp.statusCode != 0) {
+          LogUtil.e('process image failed');
+          Fluttertoast.showToast(
+            msg: processResp.statusMsg ?? 'process image failed',
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.CENTER,
+            backgroundColor: Colors.red,
+            textColor: Colors.white,
+          );
 
-    Map<String, dynamic> respMap = jsonDecode(await response.stream.bytesToString());
-    var processResp = ProcessResp.fromJson(respMap);
-    if (response.statusCode == 200) {
-      if (processResp.processedImage != null && processResp.processedImage!.isNotEmpty) {
-        print('process image success');
-        setState(() {
-          _success = true;
-          _processedImageBytes = base64Decode(processResp.processedImage!);
-        });
+          setState(() {
+            coords.clear();
+            _loading = false;
+          });
+        } else {
+          if (processResp.orderId != null) {
+            _orderId = processResp.orderId;
+          }
+          // setState(() {
+          //   _success = true;
+          //   _processedImageBytes = base64Decode(processResp.processedImage!);
+          // });
+        }
       } else {
-        print('process image failed');
+        LogUtil.e('Failed to submit image');
         Fluttertoast.showToast(
-          msg: processResp.msg,
+          msg: 'Connect to server error',
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.CENTER,
           backgroundColor: Colors.red,
           textColor: Colors.white,
         );
-      }
-    } else {
-      print('Failed to submit image');
-      Fluttertoast.showToast(
-        msg: 'Failed to submit image',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.CENTER,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
-    }
 
-    setState(() {
-      coords.clear();
-      _loading = false;
+        setState(() {
+          coords.clear();
+          _loading = false;
+        });
+      }
+    }).catchError((error) {
+      LogUtil.e(error);
     });
   }
 
   Future<void> _saveImage() async {
     if (_processedImageBytes != null) {
       final result = await ImageGallerySaver.saveImage(_processedImageBytes!);
-      print('Image saved: $result');
+      LogUtil.i('Image saved: $result');
     }
+  }
+
+  void onMessage(data) {
+    Map<String, dynamic> respMap = jsonDecode(data);
+    var wsMsg = WsMsg.fromJson(respMap);
+    if (wsMsg.code == 0) {
+      // process success
+      Map<String, dynamic> dataMap = jsonDecode(wsMsg.data!);
+      var processResp = ProcessResp.fromJson(dataMap);
+      if (processResp.orderId == _orderId &&
+          processResp.processedImage != null &&
+          processResp.processedImage!.isNotEmpty) {
+        setState(() {
+          _success = true;
+          _processedImageBytes = base64Decode(processResp.processedImage!);
+
+          coords.clear();
+          _loading = false;
+        });
+      }
+    } else {
+      Fluttertoast.showToast(
+        msg: wsMsg.msg,
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+    }
+  }
+
+  Future<String?> getCurToken() async {
+    sharedPreferences = await SharedPreferences.getInstance();
+    return sharedPreferences.getString('token');
   }
 }
