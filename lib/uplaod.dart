@@ -84,39 +84,7 @@ class _PreparePageState extends State<PreparePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: Row(
-          children: [
-            GestureDetector(
-              onTap: () {
-                Navigator.pop(context);
-              },
-              child: Padding(
-                padding: EdgeInsets.only(left: 16.0),
-                child: Image(
-                  image: AssetImage("assets/images/logo.png"),
-                  width: 30,
-                  height: 30,
-                ),
-              ),
-            ),
-            Spacer(),
-            GestureDetector(
-              onTap: () {
-                // Handle avatar tap
-              },
-              child: Padding(
-                padding: EdgeInsets.only(right: 16.0),
-                child: CircleAvatar(
-                  backgroundImage: AssetImage('assets/images/avatar.png'),
-                ),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: Color(0xb019937b),
-      ),
+      appBar:  QncAppBar(),
       body: Container(
         color: Color(0xb01abc9c),
         child: _file == null ? _buildReadyToUpload() : _buildImagePreview(),
