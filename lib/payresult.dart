@@ -12,7 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
 class PaymentResultPage extends StatefulWidget {
-  String despositId;
+  final String despositId;
 
   PaymentResultPage({Key? key, required this.despositId}) : super(key: key);
 
