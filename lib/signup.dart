@@ -1,15 +1,15 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:qnc_app/constant.dart';
 import 'package:qnc_app/login.dart';
 
 import 'package:http/http.dart' as http;
 import 'package:qnc_app/model/login_resp.dart';
-import 'package:qnc_app/uplaod.dart';
+import 'package:qnc_app/tryon.dart';
 import 'package:qnc_app/utils/log.dart';
 import 'package:qnc_app/utils/string.dart';
+import 'package:qnc_app/utils/toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SignUpPage extends StatefulWidget {
@@ -142,29 +142,17 @@ class _SignUpPageState extends State<SignUpPage> {
       LogUtil.d(processResp);
       // login success
       if (processResp.statusCode != 0) {
-        Fluttertoast.showToast(
-          msg: processResp.statusMsg,
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.CENTER,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-        );
+        showCustomToast(context, processResp.statusMsg);
       } else {
         sharedPreferences = await SharedPreferences.getInstance();
         sharedPreferences.setInt('uid', processResp.userId as int);
         sharedPreferences.setString('token', processResp.token!);
 
-        Navigator.push(context, new MaterialPageRoute(builder: (context) => new PreparePage()));
+        Navigator.push(context, new MaterialPageRoute(builder: (context) => new PrepareTryOnPage()));
       }
     } else {
       LogUtil.e('Failed to submit Sign Up');
-      Fluttertoast.showToast(
-        msg: 'Failed to submit Sign Up',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.CENTER,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
+      showCustomToast(context, 'Failed to submit Sign Up');
     }
 
     setState(() {

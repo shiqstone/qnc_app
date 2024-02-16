@@ -6,13 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_gallery_saver/image_gallery_saver.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:qnc_app/appbar.dart';
 import 'package:qnc_app/constant.dart';
 import 'package:qnc_app/login.dart';
 import 'package:qnc_app/model/ws_msg.dart';
 import 'package:qnc_app/recharge.dart';
 import 'package:qnc_app/utils/log.dart';
+import 'package:qnc_app/utils/toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -49,7 +49,7 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
     super.initState();
 
     getCurToken().then((token) {
-      if (token!.isNotEmpty) {
+      if (token != null && token.isNotEmpty) {
         _token = token;
         _channel = IOWebSocketChannel.connect(
           wsUrl,
@@ -332,13 +332,8 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
           Navigator.push(context, new MaterialPageRoute(builder: (context) => new RechargePage()));
         } else if (processResp.statusCode != 0) {
           LogUtil.e('process image failed');
-          Fluttertoast.showToast(
-            msg: processResp.statusMsg ?? 'process image failed',
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.CENTER,
-            backgroundColor: Colors.red,
-            textColor: Colors.white,
-          );
+          
+          showCustomToast(context, processResp.statusMsg ?? 'process image failed');
 
           setState(() {
             coords.clear();
@@ -351,13 +346,7 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
         }
       } else {
         LogUtil.e('Failed to submit image');
-        Fluttertoast.showToast(
-          msg: 'Connect to server error',
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.CENTER,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-        );
+        showCustomToast(context, 'Connect to server error');
 
         setState(() {
           coords.clear();
@@ -400,26 +389,13 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
 
         var msg = processResp.statusMsg ?? 'process image failed';
         showCustomToast(context, msg);
-        // Fluttertoast.showToast(
-        //   msg: msg,
-        //   toastLength: Toast.LENGTH_SHORT,
-        //   gravity: ToastGravity.CENTER,
-        //   backgroundColor: Colors.red,
-        //   textColor: Colors.white,
-        // );
       }
     } else {
       setState(() {
         _loading = false;
       });
 
-      Fluttertoast.showToast(
-        msg: wsMsg.msg,
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.CENTER,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
+      showCustomToast(context, wsMsg.msg);
     }
   }
 
@@ -428,29 +404,4 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
     return sharedPreferences.getString('token');
   }
 
-  void showCustomToast(BuildContext context, String msg) {
-    var overlayEntry = OverlayEntry(
-      builder: (context) => Center(
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
-            decoration: BoxDecoration(
-              color: Colors.grey,
-              borderRadius: BorderRadius.circular(8.0),
-            ),
-            child: Text(
-              msg,
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    Overlay.of(context)!.insert(overlayEntry);
-
-    // Remove the overlay after 2 seconds
-    Future.delayed(Duration(seconds: 2)).then((_) => overlayEntry.remove());
-  }
 }

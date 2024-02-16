@@ -6,13 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_gallery_saver/image_gallery_saver.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:qnc_app/appbar.dart';
 import 'package:qnc_app/constant.dart';
 import 'package:qnc_app/login.dart';
 import 'package:qnc_app/model/ws_msg.dart';
 import 'package:qnc_app/recharge.dart';
 import 'package:qnc_app/utils/log.dart';
+import 'package:qnc_app/utils/toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -50,7 +50,7 @@ class _PrepareTryOnPageState extends State<PrepareTryOnPage> {
     super.initState();
 
     getCurToken().then((token) {
-      if (token!.isNotEmpty) {
+      if (token != null && token.isNotEmpty) {
         _token = token;
         _channel = IOWebSocketChannel.connect(
           wsUrl,
@@ -335,6 +335,7 @@ class _PrepareTryOnPageState extends State<PrepareTryOnPage> {
     request.files.add(multipartFile);
     request.fields['pos'] = jsonEncode(coords);
     request.fields['cloth'] = cloth;
+    LogUtil.d(request);
 
     // var response = await request.send();
     request.send().then((response) async {
@@ -354,13 +355,7 @@ class _PrepareTryOnPageState extends State<PrepareTryOnPage> {
           Navigator.push(context, new MaterialPageRoute(builder: (context) => new RechargePage()));
         } else if (processResp.statusCode != 0) {
           LogUtil.e('process image failed');
-          Fluttertoast.showToast(
-            msg: processResp.statusMsg ?? 'process image failed',
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.CENTER,
-            backgroundColor: Colors.red,
-            textColor: Colors.white,
-          );
+          showCustomToast(context, processResp.statusMsg ?? 'process image failed');
 
           setState(() {
             coords.clear();
@@ -370,20 +365,10 @@ class _PrepareTryOnPageState extends State<PrepareTryOnPage> {
           if (processResp.orderId != null) {
             _orderId = processResp.orderId;
           }
-          // setState(() {
-          //   _success = true;
-          //   _processedImageBytes = base64Decode(processResp.processedImage!);
-          // });
         }
       } else {
         LogUtil.e('Failed to submit image');
-        Fluttertoast.showToast(
-          msg: 'Connect to server error',
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.CENTER,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-        );
+        showCustomToast(context, 'Connect to server error');
 
         setState(() {
           coords.clear();
@@ -425,30 +410,14 @@ class _PrepareTryOnPageState extends State<PrepareTryOnPage> {
           _loading = false;
         });
 
-        var msg = 'process image failed';
-        if (processResp.statusMsg != null && processResp.statusMsg!.isNotEmpty) {
-          msg = processResp.statusMsg!;
-        }
-        Fluttertoast.showToast(
-          msg: msg,
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.TOP,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-        );
+        showCustomToast(context, processResp.statusMsg ?? 'process image failed');
       }
     } else {
       setState(() {
         _loading = false;
       });
 
-      Fluttertoast.showToast(
-        msg: wsMsg.msg,
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.CENTER,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
+      showCustomToast(context, wsMsg.msg);
     }
   }
 
