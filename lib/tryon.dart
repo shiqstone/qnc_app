@@ -9,6 +9,7 @@ import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:qnc_app/appbar.dart';
 import 'package:qnc_app/constant.dart';
 import 'package:qnc_app/login.dart';
+import 'package:qnc_app/model/clothes_conf_resp.dart';
 import 'package:qnc_app/model/ws_msg.dart';
 import 'package:qnc_app/recharge.dart';
 import 'package:qnc_app/utils/log.dart';
@@ -45,10 +46,35 @@ class _PrepareTryOnPageState extends State<PrepareTryOnPage> {
 
   String wsUrl = Constant.wsBaseUrl + '/ws';
 
+  List<String> clothes = [
+    'bikini',
+    'bathrobe',
+    'casual wear',
+    'china dress',
+    'outfit',
+    'sweater',
+    'sportswear',
+    'hoodie',
+    'off-shoulder sweate',
+    'sweet lolita',
+    'raincoat',
+    'soccer',
+    'swimsuit',
+    'leggings',
+    'underboob cutout',
+    'wedding dress',
+  ];
+
   @override
   void initState() {
     super.initState();
 
+    initWsConnect();
+
+    getClothesConf();
+  }
+
+  void initWsConnect() {
     getCurToken().then((token) {
       if (token != null && token.isNotEmpty) {
         _token = token;
@@ -57,7 +83,7 @@ class _PrepareTryOnPageState extends State<PrepareTryOnPage> {
         );
         LogUtil.i('[ws]: connected');
         _channel.sink.add(token);
-
+    
         _channel.stream.listen((event) {
           LogUtil.i('on message');
           onMessage(event);
@@ -71,9 +97,36 @@ class _PrepareTryOnPageState extends State<PrepareTryOnPage> {
         });
       } else {
         LogUtil.i('[ws]: not login, cannot connect');
-        Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
+        // Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
       }
     });
+  }
+
+  Future<String?> getCurToken() async {
+    sharedPreferences = await SharedPreferences.getInstance();
+    return sharedPreferences.getString('token');
+  }
+
+  Future<void> getClothesConf() async {
+    var url = Constant.httpBaseUrl + '/api/getclothes/';
+    var response = await http.get(Uri.parse(url));
+
+    LogUtil.i('query clothes conf request');
+    if (response.statusCode == 200) {
+      Map<String, dynamic> respMap = jsonDecode(await response.body);
+      var clothesConfResp = ClothesConfResp.fromJson(respMap);
+      LogUtil.d(clothesConfResp);
+      if (clothesConfResp.statusCode != 0) {
+        showCustomToast(context, clothesConfResp.statusMsg ?? 'query clothes config failed');
+      } else {
+        if (clothesConfResp.clothes.isNotEmpty) {
+          clothes = clothesConfResp.clothes;
+        }
+      }
+    } else {
+      LogUtil.e('Failed to query clothes config ');
+      showCustomToast(context, 'Failed to query clothes config ');
+    }
   }
 
   @override
@@ -421,45 +474,32 @@ class _PrepareTryOnPageState extends State<PrepareTryOnPage> {
     }
   }
 
-  Future<String?> getCurToken() async {
-    sharedPreferences = await SharedPreferences.getInstance();
-    return sharedPreferences.getString('token');
-  }
-
   void _showPopupMenu(BuildContext context) {
     const double menuItemHeight = 40;
     final double menuHeight = menuItemHeight * 5;
 
-    final List<String> clothes = [
-      'outfit',
-      'sweater',
-      'sportswear',
-      'hoodie',
-      'sweet_lolita',
-      'raincoat',
-      'soccer',
-      'swimsuit',
-      'bikini',
-    ];
+    const double fontWidth = 16.0;
+    const double textWidthForChars = 15 * fontWidth;
 
     showMenu(
       context: context,
       position: RelativeRect.fromLTRB(
-        MediaQuery.of(context).size.width - MediaQuery.of(context).size.width / 2,
+        MediaQuery.of(context).size.width - textWidthForChars,
         MediaQuery.of(context).size.height / 3,
-        60,
+        10,
         0,
       ),
       items: [
         PopupMenuItem(
           child: Container(
-            height: menuHeight, // 设置容器高度为5项内容的总高度
-            width: MediaQuery.of(context).size.width / 3, // 设置菜单宽度为屏幕宽度的一半
+            height: menuHeight,
+            width: textWidthForChars - 40,
             child: ListView(
-              physics: AlwaysScrollableScrollPhysics(), // 设置为始终可滚动
+              physics: AlwaysScrollableScrollPhysics(),
               children: clothes.asMap().entries.map((entry) {
                 return ListTile(
-                    title: Text(entry.value),
+                    title: Text(entry.value,
+                        maxLines: 1, softWrap: false, overflow: TextOverflow.visible, style: TextStyle(fontSize: 16)),
                     onTap: () {
                       cloth = entry.value;
                       print(cloth);
