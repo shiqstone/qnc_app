@@ -12,7 +12,7 @@ import 'package:qnc_app/utils/toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
-  @override
+    @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
@@ -90,7 +90,6 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           GestureDetector(
                             onTap: () {
-                              // Navigator.pushNamed(context, '/signup'); // Assuming you have a named route for sign up
                               Navigator.push(context, new MaterialPageRoute(builder: (context) => new SignUpPage()));
                             },
                             child: Text(
@@ -140,7 +139,7 @@ class _LoginPageState extends State<LoginPage> {
         sharedPreferences.setInt('uid', processResp.userId as int);
         sharedPreferences.setString('token', processResp.token!);
 
-        Navigator.push(context, new MaterialPageRoute(builder: (context) => new PrepareTryOnPage()));
+        Navigator.pop(context, true);
       }
     } else {
       LogUtil.e('Failed to submit Sign Up');

@@ -163,7 +163,7 @@ class _QncAppBarState extends State<QncAppBar> {
       // query success
       if (userResp.statusCode == 10003 || userResp.statusCode == 10005) {
         LogUtil.d('no login');
-        // Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
+        Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
       } else {
         if (userResp.user != null) {
           setState(() {

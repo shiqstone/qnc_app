@@ -129,10 +129,6 @@ class _SignUpPageState extends State<SignUpPage> {
       'email': emailController.text,
       'password': passwordController.text,
     });
-    // var request = http.Request('POST', Uri.parse(url));
-    // request.fields['email'] = emailController.text;
-    // request.fields['password'] = passwordController.text;
-    // var response = await request.send();
 
     LogUtil.i('send reg request');
     LogUtil.d(response);
@@ -148,7 +144,7 @@ class _SignUpPageState extends State<SignUpPage> {
         sharedPreferences.setInt('uid', processResp.userId as int);
         sharedPreferences.setString('token', processResp.token!);
 
-        Navigator.push(context, new MaterialPageRoute(builder: (context) => new PrepareTryOnPage()));
+        Navigator.pop(context, true);
       }
     } else {
       LogUtil.e('Failed to submit Sign Up');
