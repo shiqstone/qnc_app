@@ -1,13 +1,14 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:qnc_app/appbar.dart';
 import 'package:qnc_app/constant.dart';
 import 'package:qnc_app/login.dart';
+import 'package:qnc_app/model/deposit_conf_resp.dart';
 import 'package:qnc_app/model/payment_resp.dart';
 import 'package:qnc_app/payresult.dart';
 import 'package:qnc_app/utils/log.dart';
+import 'package:qnc_app/utils/toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
@@ -21,23 +22,25 @@ class _RechargePageState extends State<RechargePage> {
   int _selectedMethod = 0;
   double _selectedAmountPrice = 0.0;
   bool _isLoading = false;
+  String? _token;
 
   late SharedPreferences sharedPreferences;
+
+  List<Map<String, dynamic>> _rechargeAmounts = [
+    {'amount': '10 Coins', 'price': 0.98},
+    {'amount': '30 Coins', 'price': 2.97},
+    {'amount': '50 Coins', 'price': 4.96},
+    {'amount': '100 Coins', 'price': 9.85},
+  ];
+  List<String> _paymentMethods = ['Paypal', 'Credit Card', 'Gift Code'];
+  String _tips = "Payment Notice";
 
   @override
   void initState() {
     super.initState();
+
+    getDepositConf();
   }
-
-  // 假定这些数据是从后端接口获取的
-  final List<Map<String, dynamic>> _rechargeAmounts = [
-    {'amount': '10 Coins', 'price': 0.99},
-    {'amount': '30 Coins', 'price': 2.97},
-    {'amount': '50 Coins', 'price': 4.90},
-    {'amount': '100 Coins', 'price': 9.88},
-  ];
-
-  final List<String> _paymentMethods = ['Paypal', 'Credit Card', 'Gift Code'];
 
   Widget _buildRechargeAmounts() {
     var cols = 2;
@@ -128,16 +131,20 @@ class _RechargePageState extends State<RechargePage> {
                   SizedBox(height: 10),
                   ElevatedButton(
                     onPressed: _pay,
-                    child: Text('Payment', style: TextStyle(color: Colors.white),),
+                    child: Text(
+                      'Payment',
+                      style: TextStyle(color: Colors.white),
+                    ),
                     style: ButtonStyle(
-                      backgroundColor: MaterialStateProperty.resolveWith((states) {
+                      backgroundColor: MaterialStateProperty.resolveWith(
+                        (states) {
                           return Colors.green;
                         },
                       ),
                     ),
                   ),
                   SizedBox(height: 20),
-                  Text('TIPS: Payment Notice'),
+                  Text('TIPS: ' + _tips),
                 ],
               ),
             ),
@@ -146,23 +153,11 @@ class _RechargePageState extends State<RechargePage> {
 
   Future<void> _pay() async {
     if (_selectedAmountPrice == 0) {
-      Fluttertoast.showToast(
-        msg: 'please choose payment amount',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.CENTER,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
+      showCustomToast(context, 'please choose payment amount');
       return;
     }
     if (_selectedMethod == 0) {
-      Fluttertoast.showToast(
-        msg: 'please choose payment method',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.CENTER,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
+      showCustomToast(context, 'please choose payment method');
       return;
     }
 
@@ -194,13 +189,7 @@ class _RechargePageState extends State<RechargePage> {
         LogUtil.d('no login');
         Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
       } else if (payResp.statusCode != 0) {
-        Fluttertoast.showToast(
-          msg: payResp.statusMsg ?? 'payment failed',
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.CENTER,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-        );
+        showCustomToast(context, payResp.statusMsg ?? 'payment failed');
       } else {
         if (payResp.depositId != null) {
           LogUtil.i('payment success, deposit_id: ${payResp.depositId}');
@@ -211,28 +200,50 @@ class _RechargePageState extends State<RechargePage> {
                         despositId: payResp.depositId!,
                       )));
         } else {
-          Fluttertoast.showToast(
-            msg: payResp.statusMsg ?? 'payment failed',
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.CENTER,
-            backgroundColor: Colors.red,
-            textColor: Colors.white,
-          );
+          showCustomToast(context, payResp.statusMsg ?? 'payment failed');
         }
       }
     } else {
       LogUtil.e('Failed to submit payment');
-      Fluttertoast.showToast(
-        msg: 'Failed to submit payment',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.CENTER,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
+      showCustomToast(context, 'Failed to submit payment');
     }
 
     setState(() {
       _isLoading = false;
     });
+  }
+
+  Future<void> getDepositConf() async {
+    var url = Constant.httpBaseUrl + '/api/gettopupconf/';
+    var response = await http.get(Uri.parse(url));
+
+    LogUtil.i('query deposit conf request');
+    if (response.statusCode == 200) {
+      Map<String, dynamic> respMap = jsonDecode(await response.body);
+      var depositConfResp = DepositConfResp.fromJson(respMap);
+      LogUtil.d(depositConfResp);
+      if (depositConfResp.statusCode != 0) {
+        showCustomToast(context, depositConfResp.statusMsg ?? 'query deposit config failed');
+      } else {
+        if (depositConfResp.products.isNotEmpty) {
+          List<Map<String, dynamic>> prods = [];
+          for (var prod in depositConfResp.products) {
+            double price = double.parse(prod["price"]);
+            prods.add({"amount": prod['name'], "price": price});
+          }
+          setState(() {
+            _rechargeAmounts = prods;
+          });
+        }
+        if (depositConfResp.tips != null && depositConfResp.tips!.isNotEmpty) {
+          setState(() {
+            _tips = depositConfResp.tips!;
+          });
+        }
+      }
+    } else {
+      LogUtil.e('Failed to query product config ');
+      showCustomToast(context, 'Failed to query product config ');
+    }
   }
 }
