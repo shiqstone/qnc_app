@@ -1,4 +1,3 @@
-import 'package:qnc_app/model/user.dart';
 
 class UserResp {
   late int statusCode;

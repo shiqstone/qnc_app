@@ -1,18 +1,18 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:qnc_app/constant.dart';
 import 'package:qnc_app/signup.dart';
 import 'package:http/http.dart' as http;
 import 'package:qnc_app/model/login_resp.dart';
-import 'package:qnc_app/tryon.dart';
 import 'package:qnc_app/utils/log.dart';
 import 'package:qnc_app/utils/string.dart';
 import 'package:qnc_app/utils/toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
-    @override
+  @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
@@ -90,7 +90,9 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           GestureDetector(
                             onTap: () {
-                              Navigator.push(context, new MaterialPageRoute(builder: (context) => new SignUpPage()));
+                              LogUtil.d('login ontap');
+                              // Navigator.push(context, new MaterialPageRoute(builder: (context) => new SignUpPage()));
+                              Get.to(() => SignUpPage());
                             },
                             child: Text(
                               'Signup now',
@@ -123,13 +125,13 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     var url = Constant.httpBaseUrl + '/user/login/';
-    var request = http.MultipartRequest('POST', Uri.parse(url));
-    request.fields['email'] = emailController.text;
-    request.fields['password'] = passwordController.text;
-    var response = await request.send();
+    var response = await http.post(Uri.parse(url), body: {
+      'email': emailController.text,
+      'password': passwordController.text,
+    });
 
     if (response.statusCode == 200) {
-      Map<String, dynamic> respMap = jsonDecode(await response.stream.bytesToString());
+      Map<String, dynamic> respMap = jsonDecode(await response.body);
       var processResp = LoginResp.fromJson(respMap);
       // login success
       if (processResp.statusCode != 0) {

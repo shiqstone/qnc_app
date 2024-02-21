@@ -48,6 +48,10 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
   void initState() {
     super.initState();
 
+    initWsConnect();
+  }
+
+  void initWsConnect() {
     getCurToken().then((token) {
       if (token != null && token.isNotEmpty) {
         _token = token;
@@ -70,7 +74,7 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
         });
       } else {
         LogUtil.i('[ws]: not login, cannot connect');
-        Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
+        // Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
       }
     });
   }
@@ -84,12 +88,18 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: QncAppBar(),
+      appBar: QncAppBar(onUpdate: updateToken),
       body: Container(
         color: Color(0xb01abc9c),
         child: _file == null ? _buildReadyToUpload() : _buildImagePreview(),
       ),
     );
+  }
+
+  void updateToken(String token) {
+    setState(() {
+      _token = token;
+    });
   }
 
   Widget _buildReadyToUpload() {
@@ -227,7 +237,7 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
         ElevatedButton.icon(
           onPressed: _loading ? null : _submitData,
           icon: Icon(Icons.upload),
-          label: Text('TryOn'),
+          label: Text('Upload'),
         ),
       ],
     );
@@ -325,14 +335,25 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
         var processResp = ProcessResp.fromJson(respMap);
         if (processResp.statusCode == 10003 || processResp.statusCode == 10005) {
           LogUtil.i('no login');
+
+          setState(() {
+            coords.clear();
+            _loading = false;
+          });
+          
           Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
         } else if (processResp.statusCode == 10006) {
           LogUtil.i('balance not enough');
-          //todo
+          
+          setState(() {
+            coords.clear();
+            _loading = false;
+          });
+
           Navigator.push(context, new MaterialPageRoute(builder: (context) => new RechargePage()));
         } else if (processResp.statusCode != 0) {
           LogUtil.e('process image failed');
-          
+
           showCustomToast(context, processResp.statusMsg ?? 'process image failed');
 
           setState(() {
@@ -403,5 +424,4 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
     sharedPreferences = await SharedPreferences.getInstance();
     return sharedPreferences.getString('token');
   }
-
 }

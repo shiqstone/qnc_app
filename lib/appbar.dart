@@ -12,14 +12,22 @@ import 'package:qnc_app/login.dart';
 
 class QncAppBar extends AppBar {
 
+  final void Function(String) onUpdate;
+
+  QncAppBar({required this.onUpdate});
+
   @override
-  State<QncAppBar> createState() => _QncAppBarState();
+  State<QncAppBar> createState() => _QncAppBarState(onUpdate);
 }
 
 class _QncAppBarState extends State<QncAppBar> {
   late String _username = '';
   late int _balance = 0;
   String? token;
+
+  final void Function(String) onUpdate;
+
+  _QncAppBarState(this.onUpdate);
 
   @override
   void initState() {
@@ -103,7 +111,11 @@ class _QncAppBarState extends State<QncAppBar> {
                         onTap: () async {
                           SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
                           sharedPreferences.remove('token');
-                          Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
+                          Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()))
+                              .then((value) {
+                            LogUtil.d('pop back');
+                            _queryUserInfo();
+                          });
                         },
                       ),
                     ],
@@ -146,8 +158,11 @@ class _QncAppBarState extends State<QncAppBar> {
   Future<void> _queryUserInfo() async {
     SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
     token = sharedPreferences.getString('token');
+    LogUtil.d(token);
     if (token == null || token!.isEmpty) {
-      // Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
+      Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage())).then((value) {
+        _queryUserInfo();
+      });
       return;
     }
 
@@ -163,13 +178,16 @@ class _QncAppBarState extends State<QncAppBar> {
       // query success
       if (userResp.statusCode == 10003 || userResp.statusCode == 10005) {
         LogUtil.d('no login');
-        Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
+        Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage())).then((value) {
+          _queryUserInfo();
+        });
       } else {
         if (userResp.user != null) {
           setState(() {
             _username = userResp.user!['user_name'];
             _balance = userResp.user!['coin'];
           });
+          onUpdate(token!);
         }
       }
     } else {

@@ -138,12 +138,18 @@ class _PrepareTryOnPageState extends State<PrepareTryOnPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: QncAppBar(),
+      appBar: QncAppBar(onUpdate: updateToken),
       body: Container(
         color: Color(0xb01abc9c),
         child: _file == null ? _buildReadyToUpload() : _buildImagePreview(),
       ),
     );
+  }
+
+  void updateToken(String token) {
+    setState(() {
+      _token = token;
+    });
   }
 
   Widget _buildReadyToUpload() {

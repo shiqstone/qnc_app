@@ -1,12 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:qnc_app/constant.dart';
-import 'package:qnc_app/login.dart';
 
 import 'package:http/http.dart' as http;
 import 'package:qnc_app/model/login_resp.dart';
-import 'package:qnc_app/tryon.dart';
 import 'package:qnc_app/utils/log.dart';
 import 'package:qnc_app/utils/string.dart';
 import 'package:qnc_app/utils/toast.dart';
@@ -90,8 +89,9 @@ class _SignUpPageState extends State<SignUpPage> {
                           ),
                           GestureDetector(
                             onTap: () {
-                              // Navigator.pushNamed(context, '/login'); // Assuming you have a named route for login
-                              Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
+                              LogUtil.d('signup ontap');
+                              // Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
+                              Get.back();
                             },
                             child: Text(
                               'Login now',
@@ -127,15 +127,14 @@ class _SignUpPageState extends State<SignUpPage> {
     LogUtil.d(url);
     var response = await http.post(Uri.parse(url), body: {
       'email': emailController.text,
+      'username': emailController.text,
       'password': passwordController.text,
     });
 
     LogUtil.i('send reg request');
-    LogUtil.d(response);
     if (response.statusCode == 200) {
       Map<String, dynamic> respMap = jsonDecode(await response.body);
       var processResp = LoginResp.fromJson(respMap);
-      LogUtil.d(processResp);
       // login success
       if (processResp.statusCode != 0) {
         showCustomToast(context, processResp.statusMsg);
@@ -144,7 +143,8 @@ class _SignUpPageState extends State<SignUpPage> {
         sharedPreferences.setInt('uid', processResp.userId as int);
         sharedPreferences.setString('token', processResp.token!);
 
-        Navigator.pop(context, true);
+        // Navigator.pop(context, true);
+        Get.close(2);
       }
     } else {
       LogUtil.e('Failed to submit Sign Up');
