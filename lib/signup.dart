@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:qnc_app/constant.dart';
 
 import 'package:http/http.dart' as http;
@@ -90,8 +89,7 @@ class _SignUpPageState extends State<SignUpPage> {
                           GestureDetector(
                             onTap: () {
                               LogUtil.d('signup ontap');
-                              // Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
-                              Get.back();
+                              Navigator.pop(context);
                             },
                             child: Text(
                               'Login now',
@@ -143,8 +141,8 @@ class _SignUpPageState extends State<SignUpPage> {
         sharedPreferences.setInt('uid', processResp.userId as int);
         sharedPreferences.setString('token', processResp.token!);
 
-        // Navigator.pop(context, true);
-        Get.close(2);
+        int count = 0;
+        Navigator.popUntil(context, (_) => count++ >= 2);
       }
     } else {
       LogUtil.e('Failed to submit Sign Up');

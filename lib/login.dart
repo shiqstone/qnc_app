@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:qnc_app/constant.dart';
 import 'package:qnc_app/signup.dart';
 import 'package:http/http.dart' as http;
@@ -91,8 +90,7 @@ class _LoginPageState extends State<LoginPage> {
                           GestureDetector(
                             onTap: () {
                               LogUtil.d('login ontap');
-                              // Navigator.push(context, new MaterialPageRoute(builder: (context) => new SignUpPage()));
-                              Get.to(() => SignUpPage());
+                              Navigator.push(context, new MaterialPageRoute(builder: (context) => new SignUpPage()));
                             },
                             child: Text(
                               'Signup now',
