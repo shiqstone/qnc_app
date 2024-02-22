@@ -6,10 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:provider/provider.dart';
 import 'package:qnc_app/appbar.dart';
 import 'package:qnc_app/constant.dart';
 import 'package:qnc_app/login.dart';
 import 'package:qnc_app/model/ws_msg.dart';
+import 'package:qnc_app/nbpuzzle/nbpuzzle.dart';
 import 'package:qnc_app/recharge.dart';
 import 'package:qnc_app/utils/log.dart';
 import 'package:qnc_app/utils/toast.dart';
@@ -28,7 +30,7 @@ class PrepareQncPage extends StatefulWidget {
 class _PrepareQncPageState extends State<PrepareQncPage> {
   File? _file;
   Image? _image;
-  GlobalKey _imageKey = GlobalKey();
+  // GlobalKey _imageKey = GlobalKey();
   bool _loading = false;
   int? width;
   int? height;
@@ -36,6 +38,10 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
   bool _success = false;
   int? _orderId;
   String? _token;
+
+  late QncAppStateProvider qncProvider;
+
+  late QncAppBar appbar;
 
   List<Coordinate> coords = [];
 
@@ -79,6 +85,11 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
     });
   }
 
+  Future<String?> getCurToken() async {
+    sharedPreferences = await SharedPreferences.getInstance();
+    return sharedPreferences.getString('token');
+  }
+
   @override
   void dispose() {
     _channel.sink.close();
@@ -87,8 +98,11 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
 
   @override
   Widget build(BuildContext context) {
+    qncProvider = Provider.of<QncAppStateProvider>(context);
     return Scaffold(
-      appBar: QncAppBar(onUpdate: updateToken),
+      appBar: QncAppBar(
+        onUpdateToken: updateToken,
+      ),
       body: Container(
         color: Color(0xb01abc9c),
         child: _file == null ? _buildReadyToUpload() : _buildImagePreview(),
@@ -182,8 +196,8 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
             child: Stack(
               children: [
                 GestureDetector(
-                  key: _imageKey,
-                  onTapUp: _handleImageTap,
+                  // key: _imageKey,
+                  onTapUp: (details) => _handleImageTap(details, context),
                   child: _image!,
                 ),
                 Positioned(
@@ -265,11 +279,12 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
     );
   }
 
-  void _handleImageTap(TapUpDetails details) {
+  void _handleImageTap(TapUpDetails details, BuildContext context) {
     setState(() {
       if (coords.length < 3) {
-        width = _imageKey.currentContext!.size!.width.toInt();
-        height = _imageKey.currentContext!.size!.height.toInt();
+        final RenderBox renderBox = context.findRenderObject() as RenderBox;
+        width = renderBox.size.width.toInt();
+        height = renderBox.size.height.toInt();
         double x = details.localPosition.dx / width!;
         double y = details.localPosition.dy / height!;
         coords.add(Coordinate(x, y));
@@ -340,17 +355,19 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
             coords.clear();
             _loading = false;
           });
-          
+
           Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
         } else if (processResp.statusCode == 10006) {
           LogUtil.i('balance not enough');
-          
+
           setState(() {
             coords.clear();
             _loading = false;
           });
 
-          Navigator.push(context, new MaterialPageRoute(builder: (context) => new RechargePage()));
+          Navigator.push(context, new MaterialPageRoute(builder: (context) => new RechargePage())).then((value) {
+            qncProvider.updateBalance(value);
+          });
         } else if (processResp.statusCode != 0) {
           LogUtil.e('process image failed');
 
@@ -408,8 +425,7 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
           _loading = false;
         });
 
-        var msg = processResp.statusMsg ?? 'process image failed';
-        showCustomToast(context, msg);
+        showCustomToast(context, processResp.statusMsg ?? 'process image failed');
       }
     } else {
       setState(() {
@@ -418,10 +434,5 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
 
       showCustomToast(context, wsMsg.msg);
     }
-  }
-
-  Future<String?> getCurToken() async {
-    sharedPreferences = await SharedPreferences.getInstance();
-    return sharedPreferences.getString('token');
   }
 }

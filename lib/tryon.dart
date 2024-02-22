@@ -6,11 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:provider/provider.dart';
 import 'package:qnc_app/appbar.dart';
 import 'package:qnc_app/constant.dart';
 import 'package:qnc_app/login.dart';
 import 'package:qnc_app/model/clothes_conf_resp.dart';
 import 'package:qnc_app/model/ws_msg.dart';
+import 'package:qnc_app/nbpuzzle/nbpuzzle.dart';
 import 'package:qnc_app/recharge.dart';
 import 'package:qnc_app/utils/log.dart';
 import 'package:qnc_app/utils/toast.dart';
@@ -29,7 +31,7 @@ class PrepareTryOnPage extends StatefulWidget {
 class _PrepareTryOnPageState extends State<PrepareTryOnPage> {
   File? _file;
   Image? _image;
-  GlobalKey _imageKey = GlobalKey();
+  // GlobalKey _imageKey = GlobalKey();
   bool _loading = false;
   int? width;
   int? height;
@@ -37,6 +39,10 @@ class _PrepareTryOnPageState extends State<PrepareTryOnPage> {
   bool _success = false;
   int? _orderId;
   String? _token;
+  
+  late QncAppStateProvider qncProvider;
+
+  late QncAppBar appbar;
 
   List<Coordinate> coords = [];
   String cloth = 'dress';
@@ -83,7 +89,7 @@ class _PrepareTryOnPageState extends State<PrepareTryOnPage> {
         );
         LogUtil.i('[ws]: connected');
         _channel.sink.add(token);
-    
+
         _channel.stream.listen((event) {
           LogUtil.i('on message');
           onMessage(event);
@@ -115,7 +121,7 @@ class _PrepareTryOnPageState extends State<PrepareTryOnPage> {
     if (response.statusCode == 200) {
       Map<String, dynamic> respMap = jsonDecode(await response.body);
       var clothesConfResp = ClothesConfResp.fromJson(respMap);
-      LogUtil.d(clothesConfResp);
+      // LogUtil.d(clothesConfResp);
       if (clothesConfResp.statusCode != 0) {
         showCustomToast(context, clothesConfResp.statusMsg ?? 'query clothes config failed');
       } else {
@@ -137,8 +143,11 @@ class _PrepareTryOnPageState extends State<PrepareTryOnPage> {
 
   @override
   Widget build(BuildContext context) {
+qncProvider = Provider.of<QncAppStateProvider>(context);
     return Scaffold(
-      appBar: QncAppBar(onUpdate: updateToken),
+      appBar: QncAppBar(
+        onUpdateToken: updateToken,
+      ),
       body: Container(
         color: Color(0xb01abc9c),
         child: _file == null ? _buildReadyToUpload() : _buildImagePreview(),
@@ -232,8 +241,8 @@ class _PrepareTryOnPageState extends State<PrepareTryOnPage> {
             child: Stack(
               children: [
                 GestureDetector(
-                  key: _imageKey,
-                  onTapUp: _handleImageTap,
+                  // key: _imageKey,
+                  onTapUp: (details) => _handleImageTap(details, context),
                   child: _image!,
                 ),
                 Positioned(
@@ -331,11 +340,12 @@ class _PrepareTryOnPageState extends State<PrepareTryOnPage> {
     );
   }
 
-  void _handleImageTap(TapUpDetails details) {
+  void _handleImageTap(TapUpDetails details, BuildContext context) {
     setState(() {
       if (coords.length < 3) {
-        width = _imageKey.currentContext!.size!.width.toInt();
-        height = _imageKey.currentContext!.size!.height.toInt();
+        final RenderBox renderBox = context.findRenderObject() as RenderBox;
+        width = renderBox.size.width.toInt();
+        height = renderBox.size.height.toInt();
         double x = details.localPosition.dx / width!;
         double y = details.localPosition.dy / height!;
         coords.add(Coordinate(x, y));
@@ -403,15 +413,24 @@ class _PrepareTryOnPageState extends State<PrepareTryOnPage> {
         var processResp = ProcessResp.fromJson(respMap);
         if (processResp.statusCode == 10003 || processResp.statusCode == 10005) {
           LogUtil.i('no login');
+
+          setState(() {
+            coords.clear();
+            _loading = false;
+          });
+
           Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
-          // setState(() {
-          //   _success = true;
-          //   _processedImageBytes = base64Decode(processResp.processedImage!);
-          // });
-        } else if (processResp.statusCode == 10006) {
+                  } else if (processResp.statusCode == 10006) {
           LogUtil.i('balance not enough');
-          //todo
-          Navigator.push(context, new MaterialPageRoute(builder: (context) => new RechargePage()));
+
+          setState(() {
+            coords.clear();
+            _loading = false;
+          });
+
+          Navigator.push(context, new MaterialPageRoute(builder: (context) => new RechargePage())).then((value) {
+            qncProvider.updateBalance(value);
+          });
         } else if (processResp.statusCode != 0) {
           LogUtil.e('process image failed');
           showCustomToast(context, processResp.statusMsg ?? 'process image failed');
@@ -448,8 +467,7 @@ class _PrepareTryOnPageState extends State<PrepareTryOnPage> {
 
   void onMessage(data) {
     Map<String, dynamic> respMap = jsonDecode(data);
-    // LogUtil.d(respMap);
-    var wsMsg = WsMsg.fromJson(respMap);
+        var wsMsg = WsMsg.fromJson(respMap);
     if (wsMsg.code == 0 && wsMsg.data != null) {
       // process success
       Map<String, dynamic> dataMap = jsonDecode(wsMsg.data!);

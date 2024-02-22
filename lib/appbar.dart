@@ -2,22 +2,23 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:qnc_app/main.dart';
 import 'package:qnc_app/model/user_resp.dart';
+import 'package:qnc_app/nbpuzzle/nbpuzzle.dart';
 import 'package:qnc_app/utils/log.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:qnc_app/constant.dart';
 import 'package:qnc_app/login.dart';
 
-class QncAppBar extends AppBar {
+class QncAppBar extends AppBar implements PreferredSizeWidget {
+  final void Function(String) onUpdateToken;
 
-  final void Function(String) onUpdate;
-
-  QncAppBar({required this.onUpdate});
+  QncAppBar({required this.onUpdateToken});
 
   @override
-  State<QncAppBar> createState() => _QncAppBarState(onUpdate);
+  State<QncAppBar> createState() => _QncAppBarState(onUpdateToken);
 }
 
 class _QncAppBarState extends State<QncAppBar> {
@@ -25,9 +26,10 @@ class _QncAppBarState extends State<QncAppBar> {
   late int _balance = 0;
   String? token;
 
-  final void Function(String) onUpdate;
+  late QncAppStateProvider qncProvider;
+  final void Function(String) onUpdateToken;
 
-  _QncAppBarState(this.onUpdate);
+  _QncAppBarState(this.onUpdateToken);
 
   @override
   void initState() {
@@ -38,6 +40,7 @@ class _QncAppBarState extends State<QncAppBar> {
 
   @override
   PreferredSizeWidget build(BuildContext context) {
+    qncProvider = Provider.of<QncAppStateProvider>(context);
     return AppBar(
       automaticallyImplyLeading: false,
       title: Row(
@@ -96,7 +99,8 @@ class _QncAppBarState extends State<QncAppBar> {
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             Text('Balance: ', textAlign: TextAlign.right),
-                            Text(_balance.toString(), textAlign: TextAlign.right, style: TextStyle(color: Colors.red)),
+                            Text(qncProvider.balance.toString(),
+                                textAlign: TextAlign.right, style: TextStyle(color: Colors.red)),
                           ],
                         ),
                       ),
@@ -186,8 +190,9 @@ class _QncAppBarState extends State<QncAppBar> {
           setState(() {
             _username = userResp.user!['user_name'];
             _balance = userResp.user!['coin'];
+            qncProvider.updateBalance(_balance);
           });
-          onUpdate(token!);
+          onUpdateToken(token!);
         }
       }
     } else {
