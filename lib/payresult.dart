@@ -1,13 +1,12 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:qnc_app/constant.dart';
 import 'package:qnc_app/login.dart';
 import 'package:qnc_app/model/pay_status_resp.dart';
 import 'package:qnc_app/recharge.dart';
-import 'package:qnc_app/uplaod.dart';
 import 'package:qnc_app/utils/log.dart';
+import 'package:qnc_app/utils/toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
@@ -24,6 +23,7 @@ class PaymentResultPage extends StatefulWidget {
 
 class _PaymentResultPageState extends State<PaymentResultPage> {
   int _status = 0;
+  int? _balance;
 
   @override
   void initState() {
@@ -53,6 +53,11 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
               children: [
                 CircularProgressIndicator(),
                 SizedBox(height: 20),
+                Text(
+                  'Payment processing, please wait...',
+                  style: TextStyle(fontSize: 16.0, color: Colors.white),
+                ),
+                SizedBox(height: 20),
                 GestureDetector(
                   onTap: () {
                     Navigator.push(context, new MaterialPageRoute(builder: (context) => new RechargePage()));
@@ -76,11 +81,15 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
                 SizedBox(width: 10),
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.push(context, new MaterialPageRoute(builder: (context) => new PreparePage()));
+                    // Navigator.push(context, new MaterialPageRoute(builder: (context) => new PrepareTryOnPage()));
+                    // int count = 0;
+                    // Navigator.popUntil(context, (_) => count++ >= 2);
+                    Navigator.pop(context);
+                    Navigator.pop(context, _balance);
                   },
-                  child: Text('TryOn'),
+                  child: Text('Back'),
                   style: ButtonStyle(backgroundColor: MaterialStateProperty.resolveWith((states) {
-                    return Colors.blueGrey.withOpacity(0.3);
+                    return Colors.blue.withOpacity(0.3);
                     // if (states.contains(MaterialState.hovered)) {
                     // }
                     // return Colors.transparent;
@@ -89,9 +98,10 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
                 SizedBox(width: 10),
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.push(context, new MaterialPageRoute(builder: (context) => new RechargePage()));
+                    // Navigator.push(context, new MaterialPageRoute(builder: (context) => new RechargePage()));
+                    Navigator.pop(context);
                   },
-                  child: Text('TopUp'),
+                  child: Text('TopUp Again'),
                 ),
               ],
             )
@@ -106,7 +116,8 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
             SizedBox(height: 50),
             GestureDetector(
               onTap: () {
-                Navigator.push(context, new MaterialPageRoute(builder: (context) => new RechargePage()));
+                // Navigator.push(context, new MaterialPageRoute(builder: (context) => new RechargePage()));
+                Navigator.pop(context);
               },
               child: Icon(Icons.backspace_outlined, color: Colors.black, size: 30),
             ),
@@ -121,7 +132,8 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
             SizedBox(height: 50),
             GestureDetector(
               onTap: () {
-                Navigator.push(context, new MaterialPageRoute(builder: (context) => new RechargePage()));
+                // Navigator.push(context, new MaterialPageRoute(builder: (context) => new RechargePage()));
+                Navigator.pop(context);
               },
               child: Icon(Icons.backspace_outlined, color: Colors.black, size: 30),
             ),
@@ -133,7 +145,7 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
   Future<void> pollPayStatus(String despositId) async {
     SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
     var token = sharedPreferences.getString('token');
-    if (token == null || token!.isEmpty) {
+    if (token == null || token.isEmpty) {
       Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
       return;
     }
@@ -154,17 +166,12 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
         LogUtil.d('no login');
         return;
       } else if (payResp.statusCode != 0) {
-        Fluttertoast.showToast(
-          msg: payResp.statusMsg ?? 'query payment status failed',
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.CENTER,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-        );
+        showCustomToast(context, payResp.statusMsg ?? 'query payment status failed');
       } else {
-        //
+        //pay success
         setState(() {
           _status = payResp.status!;
+          _balance = payResp.balance;
         });
         if (_status == 0) {
           Future.delayed(const Duration(milliseconds: 3000), () {
@@ -174,13 +181,7 @@ class _PaymentResultPageState extends State<PaymentResultPage> {
       }
     } else {
       LogUtil.e('Failed to query payment status');
-      Fluttertoast.showToast(
-        msg: 'Failed to query payment status',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.CENTER,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
+      showCustomToast(context, 'Failed to query payment status');
     }
   }
 }
