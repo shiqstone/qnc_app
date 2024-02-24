@@ -13,12 +13,12 @@ import 'package:qnc_app/constant.dart';
 import 'package:qnc_app/login.dart';
 
 class QncAppBar extends AppBar implements PreferredSizeWidget {
-  final void Function(String) onUpdateToken;
+  final VoidCallback? onLoginSuccess;
 
-  QncAppBar({required this.onUpdateToken});
+  QncAppBar({this.onLoginSuccess});
 
   @override
-  State<QncAppBar> createState() => _QncAppBarState(onUpdateToken);
+  State<QncAppBar> createState() => _QncAppBarState();
 }
 
 class _QncAppBarState extends State<QncAppBar> {
@@ -27,9 +27,6 @@ class _QncAppBarState extends State<QncAppBar> {
   String? token;
 
   late QncAppStateProvider qncProvider;
-  final void Function(String) onUpdateToken;
-
-  _QncAppBarState(this.onUpdateToken);
 
   @override
   void initState() {
@@ -115,6 +112,7 @@ class _QncAppBarState extends State<QncAppBar> {
                         onTap: () async {
                           SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
                           sharedPreferences.remove('token');
+                          qncProvider.updateToken(null);
                           Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()))
                               .then((value) {
                             LogUtil.d('pop back');
@@ -191,8 +189,12 @@ class _QncAppBarState extends State<QncAppBar> {
             _username = userResp.user!['user_name'];
             _balance = userResp.user!['coin'];
             qncProvider.updateBalance(_balance);
+            qncProvider.updateToken(token);
+
+            if (widget.onLoginSuccess != null) {
+              widget.onLoginSuccess!();
+            }
           });
-          onUpdateToken(token!);
         }
       }
     } else {

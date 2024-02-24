@@ -60,7 +60,8 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
   void initWsConnect() {
     getCurToken().then((token) {
       if (token != null && token.isNotEmpty) {
-        _token = token;
+        // _token = token;
+        qncProvider.updateToken(token);
         _channel = IOWebSocketChannel.connect(
           wsUrl,
         );
@@ -101,8 +102,8 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
     qncProvider = Provider.of<QncAppStateProvider>(context);
     return Scaffold(
       appBar: QncAppBar(
-        onUpdateToken: updateToken,
-      ),
+          onLoginSuccess: initWsConnect,
+          ),
       body: Container(
         color: Color(0xb01abc9c),
         child: _file == null ? _buildReadyToUpload() : _buildImagePreview(),
@@ -110,11 +111,11 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
     );
   }
 
-  void updateToken(String token) {
-    setState(() {
-      _token = token;
-    });
-  }
+  // void updateToken(String token) {
+  //   setState(() {
+  //     _token = token;
+  //   });
+  // }
 
   Widget _buildReadyToUpload() {
     return Center(
@@ -322,8 +323,10 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
   }
 
   Future<void> _submitData() async {
+    _token = qncProvider.token;
     LogUtil.d('cur token $_token');
     if (_token == null || _token!.isEmpty) {
+      LogUtil.d('ud sumbmit no login');
       Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
     }
 
@@ -370,7 +373,6 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
           });
         } else if (processResp.statusCode != 0) {
           LogUtil.e('process image failed');
-
           showCustomToast(context, processResp.statusMsg ?? 'process image failed');
 
           setState(() {
@@ -393,6 +395,11 @@ class _PrepareQncPageState extends State<PrepareQncPage> {
       }
     }).catchError((error) {
       LogUtil.e(error);
+
+      setState(() {
+        coords.clear();
+        _loading = false;
+      });
     });
   }
 

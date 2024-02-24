@@ -18,11 +18,9 @@ class RechargePage extends StatefulWidget {
 }
 
 class _RechargePageState extends State<RechargePage> {
-  // int? _selectedAmount;
   int _selectedMethod = 0;
   double _selectedAmountPrice = 0.0;
   bool _isLoading = false;
-  String? _token;
 
   late SharedPreferences sharedPreferences;
 
@@ -163,7 +161,7 @@ class _RechargePageState extends State<RechargePage> {
 
     SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
     var token = sharedPreferences.getString('token');
-    if (token == null || token!.isEmpty) {
+    if (token == null || token.isEmpty) {
       Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
       return;
     }

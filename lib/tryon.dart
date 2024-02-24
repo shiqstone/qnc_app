@@ -83,7 +83,8 @@ class _PrepareTryOnPageState extends State<PrepareTryOnPage> {
   void initWsConnect() {
     getCurToken().then((token) {
       if (token != null && token.isNotEmpty) {
-        _token = token;
+        // _token = token;
+        qncProvider.updateToken(token);
         _channel = IOWebSocketChannel.connect(
           wsUrl,
         );
@@ -146,7 +147,7 @@ class _PrepareTryOnPageState extends State<PrepareTryOnPage> {
 qncProvider = Provider.of<QncAppStateProvider>(context);
     return Scaffold(
       appBar: QncAppBar(
-        onUpdateToken: updateToken,
+        onLoginSuccess: initWsConnect,
       ),
       body: Container(
         color: Color(0xb01abc9c),
@@ -155,11 +156,11 @@ qncProvider = Provider.of<QncAppStateProvider>(context);
     );
   }
 
-  void updateToken(String token) {
-    setState(() {
-      _token = token;
-    });
-  }
+  // void updateToken(String token) {
+  //   setState(() {
+  //     _token = token;
+  //   });
+  // }
 
   Widget _buildReadyToUpload() {
     return Center(
@@ -383,6 +384,7 @@ qncProvider = Provider.of<QncAppStateProvider>(context);
   }
 
   Future<void> _submitData() async {
+    _token = qncProvider.token;
     LogUtil.d('cur token $_token');
     if (_token == null || _token!.isEmpty) {
       Navigator.push(context, new MaterialPageRoute(builder: (context) => new LoginPage()));
