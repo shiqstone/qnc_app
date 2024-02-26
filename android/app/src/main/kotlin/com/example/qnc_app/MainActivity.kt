@@ -1,4 +1,4 @@
-package com.example.qnc_app
+package org.benstone.qnc_app
 
 import io.flutter.embedding.android.FlutterActivity
 
