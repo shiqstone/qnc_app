@@ -1,13 +1,14 @@
 // import 'dart:io';
 import 'dart:math';
 
+import 'package:qnc_app/demo.dart';
 import 'package:qnc_app/nbpuzzle/data/board.dart';
 import 'package:qnc_app/nbpuzzle/widgets/about/dialog.dart';
 import 'package:qnc_app/nbpuzzle/widgets/game/board.dart';
 import 'package:qnc_app/nbpuzzle/widgets/game/material/page.dart';
 import 'package:flutter/material.dart' hide AboutDialog;
-import 'package:qnc_app/qnc.dart';
-import 'package:qnc_app/tryon.dart';
+// import 'package:qnc_app/qnc.dart';
+// import 'package:qnc_app/tryon.dart';
 
 Widget createMoreBottomSheet(
   BuildContext context, {
@@ -134,25 +135,39 @@ Widget createMoreBottomSheet(
         //   ),
         // ),
 
+        // GestureDetector(
+        //   onTap: () {
+        //     Navigator.push(context, new MaterialPageRoute(builder: (context) => new PrepareQncPage()));
+        //   },
+        //   child: Padding(
+        //     padding: EdgeInsets.only(top: 12.0),
+        //     child: Image(
+        //       image: AssetImage("assets/images/logo.png"),
+        //       width: 24,
+        //       height: 24,
+        //     ),
+        //   ),
+        // ),
+        // GestureDetector(
+        //   onTap: () {
+        //     Navigator.push(context, new MaterialPageRoute(builder: (context) => new PrepareTryOnPage()));
+        //   },
+        //   child: Padding(
+        //     padding: EdgeInsets.only(left: 8, top: 12.0),
+        //     child: Image(
+        //       image: AssetImage("assets/images/logo.png"),
+        //       width: 24,
+        //       height: 24,
+        //       color: Color(0xb019937b),
+        //     ),
+        //   ),
+        // ),
         GestureDetector(
           onTap: () {
-            Navigator.push(context, new MaterialPageRoute(builder: (context) => new PrepareQncPage()));
+            Navigator.push(context, new MaterialPageRoute(builder: (context) => new DemoPage()));
           },
           child: Padding(
             padding: EdgeInsets.only(top: 12.0),
-            child: Image(
-              image: AssetImage("assets/images/logo.png"),
-              width: 24,
-              height: 24,
-            ),
-          ),
-        ),
-        GestureDetector(
-          onTap: () {
-            Navigator.push(context, new MaterialPageRoute(builder: (context) => new PrepareTryOnPage()));
-          },
-          child: Padding(
-            padding: EdgeInsets.only(left: 8, top: 12.0),
             child: Image(
               image: AssetImage("assets/images/logo.png"),
               width: 24,
