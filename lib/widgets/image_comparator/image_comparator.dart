@@ -45,7 +45,7 @@ class _ImageComparatorState extends State<ImageComparator> {
   Widget build(BuildContext context) {
     _screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
-      backgroundColor: Color(0xb01abc9c),
+      backgroundColor: Colors.transparent,
       body: LayoutBuilder(
         builder: (context, constraints) {
           final double maxWidth = constraints.maxWidth;

@@ -11,6 +11,8 @@ class DemoPage extends StatefulWidget {
 class _DemoPageState extends State<DemoPage> {
   @override
   Widget build(BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       body: Container(
         color: Color(0xb019937b),
@@ -19,10 +21,10 @@ class _DemoPageState extends State<DemoPage> {
             Column(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                SizedBox(height: 60),
+                SizedBox(height: 50),
                 Text(
                   'XP the magic of AI NOW!',
-                  style: TextStyle(color: Colors.white, fontSize: 32),
+                  style: TextStyle(color: Colors.white, fontSize: screenWidth * 0.08),
                 ),
                 SizedBox(
                     child: ImageComparator(),
@@ -32,7 +34,7 @@ class _DemoPageState extends State<DemoPage> {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blueAccent,
-                    minimumSize: Size(MediaQuery.of(context).size.width / 3, 45),
+                    minimumSize: Size(screenWidth / 3, 45),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -49,7 +51,7 @@ class _DemoPageState extends State<DemoPage> {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    minimumSize: Size(MediaQuery.of(context).size.width / 3, 45),
+                    minimumSize: Size(screenWidth / 3, 45),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -62,6 +64,7 @@ class _DemoPageState extends State<DemoPage> {
                     style: TextStyle(color: Colors.redAccent),
                   ),
                 ),
+                SizedBox(height: 10),
               ],
             ),
           ],
