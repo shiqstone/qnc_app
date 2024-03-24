@@ -87,7 +87,7 @@ class GamePresenterWidgetState extends State<GamePresenterWidget> with WidgetsBi
       steps = deserializer.readInt();
       board = deserializer.readDeserializable(boardFactory);
     } catch (exception) {
-      LogUtil.e(exception.toString());
+      LogUtil.e(exception);
     }
 
     final now = DateTime.now().millisecondsSinceEpoch;

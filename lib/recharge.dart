@@ -18,19 +18,24 @@ class RechargePage extends StatefulWidget {
 }
 
 class _RechargePageState extends State<RechargePage> {
-  int _selectedMethod = 0;
+  String _selectedMethod = '';
   double _selectedAmountPrice = 0.0;
   bool _isLoading = false;
 
   late SharedPreferences sharedPreferences;
 
   List<Map<String, dynamic>> _rechargeAmounts = [
-    {'amount': '10 Coins', 'price': 0.98},
-    {'amount': '30 Coins', 'price': 2.97},
-    {'amount': '50 Coins', 'price': 4.96},
-    {'amount': '100 Coins', 'price': 9.85},
+    {'sign': '\$', 'amount': '10 Coins', 'price': 0.98},
+    {'sign': '\$', 'amount': '30 Coins', 'price': 2.97},
+    {'sign': '\$', 'amount': '50 Coins', 'price': 4.96},
+    {'sign': '\$', 'amount': '100 Coins', 'price': 9.85},
   ];
-  List<String> _paymentMethods = ['Paypal', 'Credit Card', 'Gift Code'];
+  // List<String> _paymentMethods = ['Paypal', 'Credit Card', 'Gift Code'];
+  List<Map<String, dynamic>> _paymentMethods = [
+    {'name': 'Paypal', 'id': 'paypal'},
+    {'name': 'Credit Card', 'id': 'credit'},
+    {'name': 'Gift Code', 'id': 'gift'}
+  ];
   String _tips = "Payment Notice";
 
   @override
@@ -57,13 +62,18 @@ class _RechargePageState extends State<RechargePage> {
         childAspectRatio: childAspectRatio,
       ),
       itemBuilder: (context, index) {
+        String amount = _rechargeAmounts[index]['amount'];
+        String price = (_rechargeAmounts[index]['sign'] ?? '') + _rechargeAmounts[index]['price'].toString();
         return Container(
           decoration: BoxDecoration(border: Border.all(width: 1, color: Colors.grey.withOpacity(0.4))),
           child: ListTile(
-            title: Text(_rechargeAmounts[index]['amount']),
+            title: Text(
+              amount,
+              style: TextStyle(fontSize: amount.length > 8 ? 13 : 15),
+            ),
             trailing: Text(
-              '\$' + _rechargeAmounts[index]['price'].toString(),
-              style: TextStyle(color: Colors.red),
+              price,
+              style: TextStyle(color: Colors.red, fontSize: price.length > 9 ? 13 : 15),
             ),
             onTap: () {
               setState(() {
@@ -80,27 +90,34 @@ class _RechargePageState extends State<RechargePage> {
   }
 
   Widget _buildPaymentMethods() {
-    return Column(
-      children: _paymentMethods.asMap().entries.map((entry) {
-        int index = entry.key;
-        String method = entry.value;
-        return Container(
-          decoration: BoxDecoration(border: Border.all(width: 0.5, color: Colors.grey.withOpacity(0.2))),
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-          child: ListTile(
-            title: Text(method),
-            onTap: () {
-              setState(() {
-                _selectedMethod = index + 1;
-              });
-            },
-            selectedColor: Colors.white,
-            selected: _selectedMethod == index + 1,
-            selectedTileColor: Colors.blueAccent.withOpacity(0.6),
-          ),
-        );
-      }).toList(),
-    );
+    if (_paymentMethods.length > 1) {
+      return Column(
+        children: _paymentMethods.map((entry) {
+          // int index = entry.key;
+          // String method = entry.value;
+          return Container(
+            decoration: BoxDecoration(border: Border.all(width: 0.5, color: Colors.grey.withOpacity(0.2))),
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+            child: ListTile(
+              title: Text(entry['name']),
+              onTap: () {
+                setState(() {
+                  _selectedMethod = entry['id'];
+                });
+              },
+              selectedColor: Colors.white,
+              selected: _selectedMethod == entry['id'],
+              selectedTileColor: Colors.blueAccent.withOpacity(0.6),
+            ),
+          );
+        }).toList(),
+      );
+    } else {
+      setState(() {
+        _selectedMethod = _paymentMethods[0]['id'];
+      });
+      return Column();
+    }
   }
 
   Widget _buildTitle(String title) {
@@ -124,7 +141,7 @@ class _RechargePageState extends State<RechargePage> {
                   _buildTitle('Choose Payment Amount'),
                   _buildRechargeAmounts(),
                   SizedBox(height: 15),
-                  _buildTitle('Choose Payment Method'),
+                  if (_paymentMethods.length > 1) _buildTitle('Choose Payment Method'),
                   _buildPaymentMethods(),
                   SizedBox(height: 10),
                   ElevatedButton(
@@ -154,7 +171,7 @@ class _RechargePageState extends State<RechargePage> {
       showCustomToast(context, 'please choose payment amount');
       return;
     }
-    if (_selectedMethod == 0) {
+    if (_selectedMethod == '') {
       showCustomToast(context, 'please choose payment method');
       return;
     }
@@ -174,7 +191,7 @@ class _RechargePageState extends State<RechargePage> {
     LogUtil.d(url);
     Map<String, String> headers = <String, String>{'Authorization': 'Bearer ' + token};
     var response = await http.post(Uri.parse(url), headers: headers, body: {
-      'paytype': _selectedMethod.toString(),
+      'paytype': _selectedMethod,
       'amount': _selectedAmountPrice.toString(),
     });
 
@@ -212,7 +229,7 @@ class _RechargePageState extends State<RechargePage> {
   }
 
   Future<void> getDepositConf() async {
-    var url = Constant.httpBaseUrl + '/api/gettopupconf/';
+    var url = Constant.httpBaseUrl + '/api/getdepositprods/';
     var response = await http.get(Uri.parse(url));
 
     LogUtil.i('query deposit conf request');
@@ -226,11 +243,21 @@ class _RechargePageState extends State<RechargePage> {
         if (depositConfResp.products.isNotEmpty) {
           List<Map<String, dynamic>> prods = [];
           for (var prod in depositConfResp.products) {
-            double price = double.parse(prod["price"]);
-            prods.add({"amount": prod['name'], "price": price});
+            double price = prod["price"].toDouble();
+            prods.add({"amount": prod['name'], "price": price, "sign": prod['sign']});
           }
           setState(() {
             _rechargeAmounts = prods;
+          });
+        }
+
+        if (depositConfResp.payways.isNotEmpty) {
+          List<Map<String, dynamic>> payways = [];
+          for (var way in depositConfResp.payways) {
+            payways.add(way);
+          }
+          setState(() {
+            _paymentMethods = payways;
           });
         }
         if (depositConfResp.tips != null && depositConfResp.tips!.isNotEmpty) {
